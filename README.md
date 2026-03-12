@@ -3,7 +3,7 @@
 
 **Lightweight SaaS for Small Glue/Adhesive Stick Manufacturers**
 
-Bondr helps tiny factories (like my uncle's in Riyadh) track everything from raw bead/pellet inventory to finished glue stick production—without expensive ERP bloat.
+Bondr helps tiny factories track everything from raw bead/pellet inventory to finished glue stick production—without expensive ERP bloat.
 
 ### Why Bondr?
 - Tailored for small-scale producers using spreadsheets or paper.
