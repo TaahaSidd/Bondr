@@ -3,7 +3,7 @@ Accurate Inventory for Adhesive Makers.
 
 <img width="5520" height="1872" alt="Banner" src="https://github.com/user-attachments/assets/4bd48f59-1044-4c7e-91d8-94bf63ecb186" />
 
-Tack is a lightweight SaaS designed specifically for small-scale adhesive manufacturers—like those operating in Riyadh or Pune—who need to move beyond spreadsheets without the complexity of a massive ERP.
+Tack is a lightweight SaaS designed specifically for small-scale adhesive manufacturers—like those operating anywhere in India who need to move beyond spreadsheets without the complexity of a massive ERP.
 
 ## Why Tack?
 Built for the Floor: Tailored for small factories managing raw bead/pellet inventory and glue stick extrusion.
