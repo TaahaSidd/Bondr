@@ -2,12 +2,10 @@ package com.SpicaLabs.tack.dto.response;
 
 import java.time.LocalDateTime;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-@Getter
-@Setter
+import lombok.*;
+
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RawMaterialRespDto {
