@@ -1,5 +1,6 @@
 package com.SpicaLabs.tack.entity;
 
+import com.SpicaLabs.tack.entity.enums.ProductLength;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,6 +21,9 @@ public class Product {
 
     private String name; //7mm , 11mm etc.
     private String description;
+
+    @Enumerated(EnumType.STRING)
+    private ProductLength length; //5.5, 6, 6.5 etc.
 
     @Builder.Default
     private Integer stockQuantity = 0;
