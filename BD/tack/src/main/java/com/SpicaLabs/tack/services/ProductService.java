@@ -23,6 +23,7 @@ public class ProductService {
         Product product = Product.builder()
                 .name(req.getName())
                 .description(req.getDescription())
+                .length(req.getLength())
                 .build();
 
         Product savedProduct = productRepo.save(product);
