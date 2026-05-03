@@ -1,13 +1,12 @@
 package com.SpicaLabs.tack.Mapper;
 
-import com.SpicaLabs.tack.dto.response.BatchRespDto;
-import com.SpicaLabs.tack.dto.response.ProductRespDto;
-import com.SpicaLabs.tack.dto.response.RawMaterialRespDto;
-import com.SpicaLabs.tack.entity.Batch;
-import com.SpicaLabs.tack.entity.Product;
-import com.SpicaLabs.tack.entity.RawMaterial;
+import com.SpicaLabs.tack.dto.response.*;
+import com.SpicaLabs.tack.entity.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -15,42 +14,92 @@ public class DtoMapper {
 
     // Dto mapper for RawMaterial
     public RawMaterialRespDto toRawMaterialRespDto(RawMaterial rawMaterial) {
-        RawMaterialRespDto dto = new RawMaterialRespDto();
-
-        dto.setId(rawMaterial.getId());
-        dto.setName(rawMaterial.getName());
-        dto.setQuantityKg(rawMaterial.getQuantityKg());
-        dto.setCostPerKg(rawMaterial.getCostPerKg());
-
-        dto.setSupplier(rawMaterial.getSupplier());
-        dto.setCreatedAt(rawMaterial.getCreatedAt());
-
-        return dto;
+        return RawMaterialRespDto.builder()
+                .id(rawMaterial.getId())
+                .name(rawMaterial.getName())
+                .quantityKg(rawMaterial.getQuantityKg())
+                .costPerKg(rawMaterial.getCostPerKg())
+                .supplier(rawMaterial.getSupplier())
+                .createdAt(rawMaterial.getCreatedAt())
+                .build();
     }
 
-    //Dto mapper for Batch
+    // Dto mapper for Batch
     public BatchRespDto toBatchRespDto(Batch batch) {
-        BatchRespDto dto = new BatchRespDto();
-
-        dto.setId(batch.getId());
-        dto.setBeadsUsedKg(batch.getBeadsUsedKg());
-        dto.setSticksProduced(batch.getSticksProduced());
-        dto.setWastageKg(batch.getWastageKg());
-        dto.setDate(batch.getDate());
-
-        dto.setRawMaterialId(batch.getRawMaterial().getId());
-
-        return dto;
+        return BatchRespDto.builder()
+                .id(batch.getId())
+                .beadsUsedKg(batch.getBeadsUsedKg())
+                .sticksProduced(batch.getSticksProduced())
+                .wastageKg(batch.getWastageKg())
+                .date(batch.getDate())
+                .rawMaterialId(batch.getRawMaterial().getId())
+                .build();
     }
 
-    //Mapper for Product
-
+    // Mapper for Product
     public ProductRespDto toProductRespDto(Product product) {
-        ProductRespDto dto = new ProductRespDto();
+        return ProductRespDto.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .length(product.getLength())
+                .description(product.getDescription())
+                .stockQuantity(product.getStockQuantity())
+                .build();
+    }
 
-        dto.setId(product.getId());
-        dto.setName(product.getName());
-        dto.setDescription(product.getDescription());
-        return dto;
+    // Mapper for Order
+    public OrderRespDto toOrderRespDto(Order order) {
+        List<OrderItemRespDto> itemDtos = order.getOrderItems().stream()
+                .map(this::toOrderItemRespDto)
+                .collect(Collectors.toList());
+
+        return OrderRespDto.builder()
+                .id(order.getId())
+                .customerName(order.getCustomerName())
+                .orderDate(order.getOrderDate())
+                .createdAt(order.getCreatedAt())
+                .isActive(order.getIsActive())
+                .orderItems(itemDtos)
+                .build();
+    }
+
+    // Mapper for OrderItem
+    public OrderItemRespDto toOrderItemRespDto(OrderItem orderItem) {
+        return OrderItemRespDto.builder()
+                .id(orderItem.getId())
+                .productId(orderItem.getProduct().getId())
+                .productName(orderItem.getProduct().getName())
+                .quantity(orderItem.getQuantity())
+                .price(orderItem.getPrice())
+                .build();
+    }
+
+    //Mapper for Staff
+    public StaffRespDto toStaffRespDto(Staff staff) {
+        return StaffRespDto.builder()
+                .id(staff.getId())
+                .name(staff.getName())
+                .build();
+    }
+
+    //Mapper for Attendance
+    public AttendanceRespDto toAttendanceRespDto(Attendance attendance) {
+        return AttendanceRespDto.builder()
+                .id(attendance.getId())
+                .staff(toStaffRespDto(attendance.getStaff()))
+                .status(attendance.getStatus())
+                .date(attendance.getDate())
+                .build();
+    }
+
+    //Mapper for Payments
+    public PaymentRespDto toPaymentRespDto(Payment payment) {
+        return PaymentRespDto.builder()
+                .id(payment.getId())
+                .staff(toStaffRespDto(payment.getStaff()))
+                .amount(payment.getAmount())
+                .type(payment.getPaymentType())
+                .date(payment.getDate())
+                .build();
     }
 }
