@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/Tack/attendance")
+@RequestMapping("Tack/attendance")
 @RequiredArgsConstructor
 public class AttendanceController {
 

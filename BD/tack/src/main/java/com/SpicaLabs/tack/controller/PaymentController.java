@@ -21,7 +21,7 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.makePayment(req));
     }
 
-    @GetMapping("/staff/{staffId")
+    @GetMapping("/staff/{staffId}")
     public ResponseEntity<List<PaymentRespDto>> getPaymentByStaffId(@PathVariable Long staffId) {
         return ResponseEntity.ok(paymentService.getAllPaymentsByStaffId(staffId));
     }
