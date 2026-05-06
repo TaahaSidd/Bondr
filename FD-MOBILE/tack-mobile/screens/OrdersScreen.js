@@ -1,109 +1,236 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Animated } from "react-native";
+import {
+    View, Text, StyleSheet, ScrollView, TextInput,
+    TouchableOpacity, ActivityIndicator, SafeAreaView, Platform
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
-import { CustomHeader } from "../components/CustomHeader";
+import { useTheme } from "../context/ThemeContext"; // ← Added Theme Hook
+import { inventoryApi } from "../api/inventoryApi";
+
 import { BottomNavBar } from "../components/BottomNavBar";
 import { Button } from "../components/Button";
 import { LineItem } from "../components/LineItem";
 import { ItemSelector } from "../components/ItemSelector";
-import { Toast } from "../components/Toast"; // Import your Toast component
-import { inventoryApi } from "../api/inventoryApi";
-import { theme } from "../constants/theme";
+import { PickerField } from "../components/PickerField";
+import { Toast } from "../components/Toast";
+import { OrderList } from "../components/OrderList";
 
-export default function OrdersScreen() {
+export default function OrdersScreen({ navigation }) {
+    const { theme } = useTheme();           // ← Live theme
+    const s = makeStyles(theme);            // ← Dynamic styles
+
     const [customerName, setCustomerName] = useState("");
-    const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
     const [orderItems, setOrderItems] = useState([
         { id: Date.now(), selectedProduct: null, quantity: "1", price: "" }
     ]);
 
-    // Toast State
-    const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
-
     const [products, setProducts] = useState([]);
+    const [recentOrders, setRecentOrders] = useState([]);
     const [submitting, setSubmitting] = useState(false);
+    const [loadingRecent, setLoadingRecent] = useState(false);
     const [showProductModal, setShowProductModal] = useState(false);
     const [activeItemIndex, setActiveItemIndex] = useState(null);
+    const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
 
-    // Helper to show toast
-    const showToast = (message, type = "success") => {
-        setToast({ visible: true, message, type });
+    const showToast = (msg, type = "success") => setToast({ visible: true, message: msg, type });
+    const formatDate = (d) => d.toISOString().split("T")[0];
+
+    const onDateChange = (event, selected) => {
+        if (Platform.OS === "android") setShowDatePicker(false);
+        if (selected) setDate(selected);
     };
 
     const loadProducts = useCallback(async () => {
         try {
-            const res = await inventoryApi.getProducts();
-            setProducts(res.data);
-        } catch (err) {
-            console.error("Failed to load products", err);
+            const r = await inventoryApi.getProducts();
+            setProducts(r.data);
+        } catch {
+            showToast("Could not load products.", "error");
+        }
+    }, []);
+
+    const fetchRecentOrders = useCallback(async () => {
+        setLoadingRecent(true);
+        try {
+            const r = await inventoryApi.getOrders();
+            setRecentOrders([...r.data].sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate)).slice(0, 3));
+        } catch {
+            showToast("Could not load recent orders.", "error");
+        } finally {
+            setLoadingRecent(false);
         }
     }, []);
 
     useEffect(() => { loadProducts(); }, [loadProducts]);
+    useFocusEffect(useCallback(() => { fetchRecentOrders(); }, [fetchRecentOrders]));
+
+    const addRow = () => setOrderItems(p => [...p, { id: Date.now(), selectedProduct: null, quantity: "1", price: "" }]);
+    const removeItem = (id) => {
+        if (orderItems.length > 1) setOrderItems(p => p.filter(i => i.id !== id));
+        else showToast("Order needs at least one item.", "warning");
+    };
+    const updateItem = (index, field, value) =>
+        setOrderItems(p => { const n = [...p]; n[index] = { ...n[index], [field]: value }; return n; });
 
     const handleCreateOrder = async () => {
-        if (!customerName.trim()) {
-            showToast("Please enter a customer name", "warning");
-            return;
-        }
-
-        const validItems = orderItems.filter(item => item.selectedProduct !== null);
-        if (validItems.length === 0) {
-            showToast("Please add at least one product", "warning");
-            return;
-        }
-
-        const payload = {
-            customerName: customerName,
-            orderDate: orderDate,
-            orderItems: validItems.map(item => ({
-                productId: item.selectedProduct.id,
-                quantity: parseInt(item.quantity) || 0
-            }))
-        };
-
+        if (!customerName.trim()) { showToast("Enter a customer name.", "warning"); return; }
+        const valid = orderItems.filter(i => i.selectedProduct);
+        if (!valid.length) { showToast("Add at least one product.", "warning"); return; }
         setSubmitting(true);
         try {
-            await inventoryApi.createOrder(payload);
-            showToast("Order created successfully!");
-
-            // Reset Form
-            setCustomerName("");
+            await inventoryApi.createOrder({
+                customerName: customerName.trim(),
+                orderDate: formatDate(date),
+                orderItems: valid.map(i => ({
+                    productId: i.selectedProduct.id,
+                    quantity: parseInt(i.quantity) || 0,
+                    price: parseFloat(i.price) || 0,
+                })),
+            });
+            showToast("Order created!");
+            setCustomerName(""); setDate(new Date());
             setOrderItems([{ id: Date.now(), selectedProduct: null, quantity: "1", price: "" }]);
-        } catch (error) {
-            const msg = error.response?.data?.message || "Failed to create order";
-            showToast(msg, "error");
-        } finally {
-            setSubmitting(false);
-        }
+            fetchRecentOrders();
+        } catch (e) {
+            showToast(e.response?.data?.message ?? "Failed to create order.", "error");
+        } finally { setSubmitting(false); }
     };
 
-    const addRow = () => {
-        setOrderItems([...orderItems, { id: Date.now(), selectedProduct: null, quantity: "1", price: "" }]);
-    };
-
-    const removeItem = (id) => {
-        if (orderItems.length > 1) {
-            setOrderItems(orderItems.filter(item => item.id !== id));
-        }
-    };
-
-    const updateQty = (index, val) => {
-        const newItems = [...orderItems];
-        newItems[index].quantity = val;
-        setOrderItems(newItems);
-    };
-
-    const updatePrice = (index, val) => {
-        const newItems = [...orderItems];
-        newItems[index].price = val;
-        setOrderItems(newItems);
-    };
+    const totalUnits = orderItems.reduce((s, i) => s + (parseInt(i.quantity) || 0), 0);
+    const totalValue = orderItems.reduce((s, i) => s + (parseFloat(i.price) || 0) * (parseInt(i.quantity) || 0), 0);
 
     return (
-        <View style={styles.container}>
-            {/* Render Toast at the root of the screen */}
+        <SafeAreaView style={s.container}>
+            {/* CustomHeader removed as requested */}
+
+            <ItemSelector
+                visible={showProductModal}
+                title="Select Product"
+                items={products}
+                onClose={() => setShowProductModal(false)}
+                onSelect={(prod) => {
+                    updateItem(activeItemIndex, "selectedProduct", prod);
+                    if (prod.price) updateItem(activeItemIndex, "price", String(prod.price));
+                }}
+                renderSub={item => `In Stock: ${item.stockQuantity}`}
+            />
+
+            {showDatePicker && (
+                <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={onDateChange}
+                    maximumDate={new Date()}
+                />
+            )}
+
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={s.scrollContent}
+            >
+                <Text style={s.screenTitle}>New Order</Text>
+
+                <Text style={s.sectionTitle}>Customer</Text>
+                <View style={s.card}>
+                    <View style={s.row}>
+                        <View style={s.halfLeft}>
+                            <Text style={s.fieldLabel}>Name</Text>
+                            <TextInput
+                                style={s.input}
+                                value={customerName}
+                                onChangeText={setCustomerName}
+                                placeholder="Foxglue Dist."
+                                placeholderTextColor={theme.colors.outline}
+                            />
+                        </View>
+                        <View style={s.halfRight}>
+                            <PickerField
+                                label="Date"
+                                value={formatDate(date)}
+                                placeholder="Select date"
+                                onPress={() => setShowDatePicker(true)}
+                            />
+                        </View>
+                    </View>
+                </View>
+
+                <Text style={s.sectionTitle}>Order Items</Text>
+                <View style={s.card}>
+                    <View style={s.itemsInner}>
+                        {orderItems.map((item, index) => (
+                            <LineItem
+                                key={item.id}
+                                selectedProduct={item.selectedProduct}
+                                qty={item.quantity}
+                                price={item.price}
+                                onQtyChange={val => updateItem(index, "quantity", val)}
+                                onPriceChange={val => updateItem(index, "price", val)}
+                                onPickProduct={() => { setActiveItemIndex(index); setShowProductModal(true); }}
+                                onRemove={() => removeItem(item.id)}
+                            />
+                        ))}
+
+                        <TouchableOpacity style={s.addItemRow} onPress={addRow}>
+                            <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
+                            <Text style={s.addItemText}>Add another item</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={s.divider} />
+                    <View style={s.summaryRow}>
+                        <View style={s.summaryItem}>
+                            <Text style={s.summaryLabel}>Units</Text>
+                            <Text style={s.summaryValue}>{totalUnits.toLocaleString()}</Text>
+                        </View>
+                        <View style={s.summaryDivider} />
+                        <View style={s.summaryItem}>
+                            <Text style={s.summaryLabel}>Value</Text>
+                            <Text style={s.summaryValue}>
+                                ₹{totalValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={s.submitRow}>
+                        <Button
+                            label="Create Order"
+                            variant="primary"
+                            loading={submitting}
+                            disabled={submitting}
+                            onPress={handleCreateOrder}
+                            style={{ marginVertical: 0 }}
+                        />
+                    </View>
+                </View>
+
+                <Text style={s.sectionTitle}>Recent Orders</Text>
+                <View style={s.card}>
+                    {loadingRecent ? (
+                        <ActivityIndicator color={theme.colors.primary} style={{ marginVertical: 20 }} />
+                    ) : (
+                        <OrderList
+                            orders={recentOrders}
+                            onItemPress={order => navigation.navigate("OrderDetails", { order })}
+                        />
+                    )}
+                    <TouchableOpacity
+                        style={s.viewAllRow}
+                        onPress={() => navigation.navigate("AllOrders")}
+                    >
+                        <Text style={s.viewAllText}>View all orders</Text>
+                        <Ionicons name="arrow-forward" size={14} color={theme.colors.primary} />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={{ height: 120 }} />
+            </ScrollView>
+
             {toast.visible && (
                 <Toast
                     message={toast.message}
@@ -112,119 +239,95 @@ export default function OrdersScreen() {
                 />
             )}
 
-            <CustomHeader title="Orders" subtitle="Sales & Dispatch" />
-
-            <ItemSelector
-                visible={showProductModal}
-                title="Select Product"
-                items={products}
-                onClose={() => setShowProductModal(false)}
-                onSelect={(prod) => {
-                    const newItems = [...orderItems];
-                    newItems[activeItemIndex].selectedProduct = prod;
-                    if (prod.price) newItems[activeItemIndex].price = String(prod.price);
-                    setOrderItems(newItems);
-                }}
-                renderSub={(item) => `In Stock: ${item.stockQuantity}`}
-            />
-
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                <View style={styles.formSection}>
-                    <Text style={styles.label}>Customer Name</Text>
-                    <TextInput
-                        style={styles.textInput}
-                        value={customerName}
-                        onChangeText={setCustomerName}
-                        placeholder="e.g. Acme Industrial"
-                        placeholderTextColor={theme.colors.outline}
-                    />
-
-                    <View style={{ marginTop: 20 }}>
-                        <Text style={styles.label}>Order Date</Text>
-                        <TouchableOpacity style={styles.datePicker}>
-                            <Text style={styles.dateText}>{orderDate}</Text>
-                            <Ionicons name="calendar-outline" size={18} color={theme.colors.outline} />
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                <View style={styles.itemsHeader}>
-                    <Text style={styles.sectionTitle}>Order Items</Text>
-                    <TouchableOpacity style={styles.scanBtn}>
-                        <Ionicons name="barcode-outline" size={18} color={theme.colors.primary} />
-                        <Text style={styles.scanText}>Scan</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {orderItems.map((item, index) => (
-                    <LineItem
-                        key={item.id}
-                        selectedProduct={item.selectedProduct}
-                        qty={item.quantity}
-                        price={item.price}
-                        onQtyChange={(val) => updateQty(index, val)}
-                        onPriceChange={(val) => updatePrice(index, val)}
-                        onPickProduct={() => {
-                            setActiveItemIndex(index);
-                            setShowProductModal(true);
-                        }}
-                        onRemove={() => removeItem(item.id)}
-                    />
-                ))}
-
-                <Button
-                    label="Add Item"
-                    variant="text"
-                    icon="add-circle-outline"
-                    onPress={addRow}
-                    style={{ marginTop: 12, alignSelf: 'flex-start' }}
-                />
-
-                <View style={styles.summaryRow}>
-                    <View>
-                        <Text style={styles.summaryLabel}>Total Items</Text>
-                        <Text style={styles.summaryValue}>{orderItems.length}</Text>
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                        <Button
-                            label="Create Order"
-                            variant="primary"
-                            icon="send-outline"
-                            loading={submitting}
-                            disabled={submitting}
-                            onPress={handleCreateOrder}
-                        />
-                    </View>
-                </View>
-
-                <View style={{ height: 120 }} />
-            </ScrollView>
-
             <BottomNavBar activeRoute="Orders" />
-        </View>
+        </SafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.colors.background },
-    scrollContent: { paddingHorizontal: 24, paddingTop: 12 },
-    formSection: {
+const makeStyles = (theme) => StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        marginTop: 24 // ← Consistent with StockScreen
+    },
+    scrollContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
+
+    screenTitle: {
+        fontSize: 22, fontWeight: "700",
+        color: theme.colors.onSurface, marginBottom: 16,
+    },
+    sectionTitle: {
+        fontSize: 16, fontWeight: "700",
+        color: theme.colors.onSurface, marginBottom: 10,
+    },
+
+    card: {
         backgroundColor: theme.colors.surfaceContainerLowest,
         borderRadius: 16,
-        padding: 20,
         borderWidth: 1,
         borderColor: theme.colors.outlineVariant,
-        marginBottom: 24
+        marginBottom: 24,
     },
-    itemsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', color: theme.colors.onSurface },
-    label: { fontSize: 11, fontWeight: '900', color: theme.colors.outline, marginBottom: 8, letterSpacing: 1 },
-    textInput: { height: 52, backgroundColor: theme.colors.surfaceContainerLow, borderRadius: 8, paddingHorizontal: 16, fontSize: 15, color: theme.colors.onSurface, borderWidth: 1, borderColor: theme.colors.outlineVariant },
-    datePicker: { height: 52, backgroundColor: theme.colors.surfaceContainerLow, borderRadius: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, borderWidth: 1, borderColor: theme.colors.outlineVariant },
-    dateText: { color: theme.colors.onSurface, fontSize: 15, fontWeight: '500' },
-    scanBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    scanText: { color: theme.colors.primary, fontWeight: '700', fontSize: 13 },
-    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 32, paddingTop: 20, borderTopWidth: 1, borderTopColor: theme.colors.outlineVariant },
-    summaryLabel: { fontSize: 11, color: theme.colors.outline, fontWeight: '700' },
-    summaryValue: { fontSize: 22, fontWeight: '800', color: theme.colors.onSurface },
+
+    row: { flexDirection: "row", padding: 16, paddingBottom: 0 },
+    halfLeft: { flex: 1, marginRight: 8 },
+    halfRight: { flex: 1, marginLeft: 8 },
+
+    fieldLabel: {
+        fontSize: 12, fontWeight: "600",
+        color: theme.colors.outline, marginBottom: 6,
+    },
+    input: {
+        height: 52,
+        backgroundColor: theme.colors.surfaceContainerLow,
+        borderRadius: 8, borderWidth: 1,
+        borderColor: theme.colors.outlineVariant,
+        paddingHorizontal: 12,
+        fontSize: 15, color: theme.colors.onSurface,
+        marginBottom: 16,
+    },
+
+    itemsInner: { padding: 16, paddingBottom: 0 },
+
+    addItemRow: {
+        flexDirection: "row", alignItems: "center",
+        justifyContent: "center", gap: 8,
+        paddingVertical: 12,
+        borderRadius: 8, borderWidth: 1.5,
+        borderStyle: "solid",
+        borderColor: theme.colors.outlineVariant,
+        marginBottom: 4,
+    },
+    addItemText: {
+        fontSize: 13, fontWeight: "600", color: theme.colors.primary,
+    },
+
+    divider: {
+        height: 1,
+        backgroundColor: theme.colors.outlineVariant,
+        marginTop: 16,
+    },
+
+    summaryRow: {
+        flexDirection: "row",
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+    },
+    summaryItem: { alignItems: "center", paddingHorizontal: 12 },
+    summaryLabel: { fontSize: 11, fontWeight: "600", color: theme.colors.outline },
+    summaryValue: { fontSize: 17, fontWeight: "700", color: theme.colors.onSurface, marginTop: 2 },
+    summaryDivider: { width: 1, height: 28, backgroundColor: theme.colors.outlineVariant, alignSelf: "center" },
+
+    submitRow: {
+        paddingHorizontal: 16,
+        paddingBottom: 16,
+    },
+
+    viewAllRow: {
+        flexDirection: "row", alignItems: "center",
+        justifyContent: "center", gap: 6,
+        paddingVertical: 14,
+        borderTopWidth: 1, borderTopColor: theme.colors.outlineVariant,
+    },
+    viewAllText: { fontSize: 13, fontWeight: "600", color: theme.colors.primary },
 });

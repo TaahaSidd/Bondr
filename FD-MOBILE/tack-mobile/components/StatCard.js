@@ -1,66 +1,49 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { theme } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 export const StatCard = ({ label, value, subtext, type = "primary", style }) => {
-    const accentColor = type === "error" ? theme.colors.error : theme.colors.primary;
-    const indicatorColor = type === "error" ? theme.colors.error : theme.colors.outlineVariant;
+    const { theme } = useTheme();
+    const s = makeStyles(theme);
+
+    // Dynamic value color selection based on theme colors
+    const valueColor =
+        type === "error" ? theme.colors.error :
+            type === "tertiary" ? theme.colors.onTertiaryFixedVariant :
+                theme.colors.primary;
 
     return (
-        <View style={[styles.card, style]}>
-            <View style={styles.header}>
-                {/* A small vertical "pill" indicator instead of an icon */}
-                {/* <View style={[styles.indicator, { backgroundColor: indicatorColor }]} /> */}
-                <Text style={styles.labelText}>{label}</Text>
-            </View>
-
-            <View style={styles.content}>
-                <Text style={[styles.valueText, { color: accentColor }]}>{value}</Text>
-                <Text style={styles.subtext}>{subtext}</Text>
-            </View>
+        <View style={[s.card, style]}>
+            <Text style={s.label}>{label}</Text>
+            <Text style={[s.value, { color: valueColor }]}>{value}</Text>
+            {subtext && <Text style={s.subtext}>{subtext}</Text>}
         </View>
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     card: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: theme.colors.surfaceContainerLowest,
         borderRadius: 12,
-        padding: 16,
+        padding: 14,
         borderWidth: 1,
         borderColor: theme.colors.outlineVariant,
-        minHeight: 110,
-        justifyContent: 'space-between'
+        justifyContent: "space-between",
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8
+    label: {
+        fontSize: 11,
+        fontWeight: "600",
+        color: theme.colors.onSurfaceVariant,
+        marginBottom: 8,
     },
-    indicator: {
-        width: 3,
-        height: 12,
-        borderRadius: 2
-    },
-    labelText: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: theme.colors.outline,
-        letterSpacing: 1
-    },
-    content: {
-        marginTop: 8
-    },
-    valueText: {
-        fontSize: 26,
-        fontWeight: '700',
-        color: theme.colors.onSurface
+    value: {
+        fontSize: 20,
+        fontWeight: "700",
     },
     subtext: {
-        fontSize: 12,
+        fontSize: 11,
         color: theme.colors.outline,
-        fontWeight: '500',
-        marginTop: 2
+        marginTop: 4,
     },
 });

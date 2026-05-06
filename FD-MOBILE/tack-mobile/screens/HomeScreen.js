@@ -1,46 +1,43 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    SafeAreaView,
-    ActivityIndicator,
-    RefreshControl
+    View, Text, StyleSheet, ScrollView,
+    TouchableOpacity, SafeAreaView,
+    ActivityIndicator, RefreshControl
 } from "react-native";
-import { theme } from "../constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../context/ThemeContext";
 import { CustomHeader } from "../components/CustomHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
 import { MetricCard } from "../components/MetricCard";
+import { OrderList } from "../components/OrderList";
 import { inventoryApi } from "../api/inventoryApi";
+import { staffApi } from "../api/staffApi";
 
-export function HomeScreen() {
+export function HomeScreen({ navigation }) {
+    const { theme } = useTheme();           // ← live theme, updates when dark mode toggles
+    const s = makeStyles(theme);            // ← styles rebuilt with current theme
+
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [metrics, setMetrics] = useState({ totalStock: 0, pendingOrders: 0 });
+    const [metrics, setMetrics] = useState({ totalStock: 0, pendingOrders: 0, staffCount: 0 });
     const [recentOrders, setRecentOrders] = useState([]);
 
     const loadDashboardData = useCallback(async () => {
         try {
-            const [prodRes, orderRes] = await Promise.all([
+            const [prodRes, orderRes, staffRes] = await Promise.all([
                 inventoryApi.getProducts(),
-                inventoryApi.getOrders()
+                inventoryApi.getOrders(),
+                staffApi.getAllStaff(),
             ]);
-
-            // Calculate total units across all products
-            const total = prodRes.data.reduce((acc, item) => acc + (item.stockQuantity || 0), 0);
-
-            // Filter for orders that aren't completed/dispatched yet
-            const pending = orderRes.data.filter(o => o.status !== 'COMPLETED').length;
-
             setMetrics({
-                totalStock: total,
-                pendingOrders: pending
+                totalStock: prodRes.data.reduce((a, p) => a + (p.stockQuantity || 0), 0),
+                pendingOrders: orderRes.data.filter(o => o.status !== "COMPLETED").length,
+                staffCount: staffRes.data.length,
             });
-
-            // Get the 4 most recent orders
-            setRecentOrders(orderRes.data.slice(0, 3));
+            setRecentOrders([...orderRes.data]
+                .sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate))
+                .slice(0, 3)
+            );
         } catch (err) {
             console.error("Dashboard sync failed:", err);
         } finally {
@@ -49,98 +46,91 @@ export function HomeScreen() {
         }
     }, []);
 
-    useEffect(() => {
-        loadDashboardData();
-    }, [loadDashboardData]);
-
-    const onRefresh = () => {
-        setRefreshing(true);
-        loadDashboardData();
-    };
+    useEffect(() => { loadDashboardData(); }, [loadDashboardData]);
 
     if (loading) {
         return (
-            <View style={[styles.container, { justifyContent: 'center' }]}>
+            <View style={[s.container, { justifyContent: "center", alignItems: "center" }]}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            <CustomHeader isDashboard={true} />
+        <SafeAreaView style={s.container}>
+            <CustomHeader isDashboard />
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={s.scrollContent}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => { setRefreshing(true); loadDashboardData(); }}
+                        tintColor={theme.colors.primary}
+                    />
                 }
             >
-                <View style={styles.titleContainer}>
-                    <Text style={styles.screenTitle}>Factory Overview</Text>
-                    <Text style={styles.subtitle}>Real-time inventory and sales metrics</Text>
-                </View>
-
-                {/* Metric Cards Section */}
-                <View style={styles.metricsGrid}>
-                    <MetricCard
-                        title="Total Stock"
-                        value={metrics.totalStock.toLocaleString()}
-                        unit="units"
-                        subtext="Across all categories"
-                        iconName="archive-outline"
-                        trendUp={metrics.totalStock > 1000}
-                    />
-
-                    <MetricCard
-                        title="Pending Orders"
-                        value={metrics.pendingOrders.toString()}
-                        unit="active"
-                        subtext="Awaiting processing"
-                        iconName="cart-outline"
-                        trendUp={metrics.pendingOrders > 5}
-                    />
-                </View>
-
-                {/* Recent Orders Section */}
-                <View style={styles.sectionContainer}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Recent Orders</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.viewAll}>View All</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.tableRow}>
-                        <Text style={[styles.tableHeader, { flex: 2 }]}>Customer</Text>
-                        <Text style={[styles.tableHeader, { flex: 1, textAlign: 'right' }]}>Status</Text>
-                    </View>
-
-                    {recentOrders.length > 0 ? (
-                        recentOrders.map((order) => (
-                            <OrderRow
-                                key={order.id}
-                                name={order.customerName}
-                                date={order.orderDate}
-                                status={order.status || "Pending"}
-                            />
-                        ))
-                    ) : (
-                        <Text style={styles.emptyText}>No recent orders found.</Text>
-                    )}
-                </View>
-
-                {/* Quick Action / Status Card */}
-                <View style={styles.visualCard}>
+                {/* Greeting */}
+                <View style={s.greeting}>
                     <View>
-                        <Text style={styles.visualTitle}>Warehouse A</Text>
-                        <Text style={styles.visualSub}>Operational & Synced</Text>
+                        <Text style={s.greetLabel}>Good morning</Text>
+                        <Text style={s.greetTitle}>Factory Overview</Text>
                     </View>
-                    <TouchableOpacity style={styles.syncBadge}>
-                        <Text style={styles.syncText}>Live</Text>
+                </View>
+
+                {/* Metric cards */}
+                <View style={s.metricsRow}>
+                    <MetricCard title="Total Stock" value={metrics.totalStock.toLocaleString()} unit="units" subtext="All products" />
+                    <MetricCard title="Pending Orders" value={metrics.pendingOrders.toString()} unit="active" subtext="Awaiting dispatch" />
+                    <MetricCard title="Staff" value={metrics.staffCount.toString()} unit="members" subtext="On roster" />
+                </View>
+
+                {/* Quick nav */}
+                <View style={s.quickRow}>
+                    {[
+                        { label: "Materials", icon: "flask-outline", route: "Materials" },
+                        { label: "Production", icon: "hardware-chip-outline", route: "Batches" },
+                        { label: "Stock", icon: "layers-outline", route: "Stock" },
+                        { label: "Staff", icon: "people-outline", route: "Staff" },
+                    ].map(item => (
+                        <TouchableOpacity key={item.route} style={s.quickItem} onPress={() => navigation.navigate(item.route)}>
+                            <View style={s.quickIcon}>
+                                <Ionicons name={item.icon} size={20} color={theme.colors.primary} />
+                            </View>
+                            <Text style={s.quickLabel}>{item.label}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {/* Recent orders */}
+                <Text style={s.sectionTitle}>Recent Orders</Text>
+                <View style={s.card}>
+                    {recentOrders.length === 0 ? (
+                        <Text style={s.emptyText}>No orders yet.</Text>
+                    ) : (
+                        <OrderList
+                            orders={recentOrders}
+                            onItemPress={order => navigation.navigate("OrderDetails", { order })}
+                        />
+                    )}
+                    <TouchableOpacity style={s.viewAllRow} onPress={() => navigation.navigate("AllOrders")}>
+                        <Text style={s.viewAllText}>View all orders</Text>
+                        <Ionicons name="arrow-forward" size={14} color={theme.colors.primary} />
                     </TouchableOpacity>
                 </View>
+
+                {/* Status card */}
+                {/* <View style={s.statusCard}>
+                    <View style={s.statusLeft}>
+                        <View style={s.statusDot} />
+                        <View>
+                            <Text style={s.statusTitle}>Warehouse A</Text>
+                            <Text style={s.statusSub}>Operational · Synced</Text>
+                        </View>
+                    </View>
+                    <Text style={s.statusTime}>Just now</Text>
+                </View> */}
 
                 <View style={{ height: 120 }} />
             </ScrollView>
@@ -150,68 +140,62 @@ export function HomeScreen() {
     );
 }
 
-const OrderRow = ({ name, date, status }) => {
-    // Logic for dynamic status colors
-    const isCompleted = status.toLowerCase() === 'completed';
-
-    return (
-        <View style={styles.tableDataRow}>
-            <View style={{ flex: 2 }}>
-                <Text style={[styles.cellText, { fontWeight: '700' }]}>{name}</Text>
-                <Text style={styles.dateText}>{date}</Text>
-            </View>
-            <View style={[
-                styles.statusBadge,
-                { backgroundColor: isCompleted ? theme.colors.tertiaryFixed : theme.colors.primaryFixed }
-            ]}>
-                <Text style={[
-                    styles.statusText,
-                    { color: isCompleted ? theme.colors.onTertiaryFixedVariant : theme.colors.onPrimaryFixedVariant }
-                ]}>
-                    {status.toUpperCase()}
-                </Text>
-            </View>
-        </View>
-    );
-};
-
-const styles = StyleSheet.create({
+// Styles as a function of theme so they update on mode switch
+const makeStyles = (theme) => StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background },
-    scrollContent: { paddingHorizontal: 24, paddingTop: 20 },
-    titleContainer: { marginBottom: 24 },
-    screenTitle: { fontSize: 28, fontWeight: '700', color: theme.colors.onSurface, letterSpacing: -0.5 },
-    subtitle: { fontSize: 14, color: theme.colors.onSurfaceVariant, marginTop: 4 },
-    metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
-    sectionContainer: {
+    scrollContent: { paddingHorizontal: 24, paddingTop: 16 },
+
+    greeting: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 },
+    greetLabel: { fontSize: 13, color: theme.colors.onSurfaceVariant, fontWeight: "500", marginBottom: 2 },
+    greetTitle: { fontSize: 22, fontWeight: "700", color: theme.colors.onSurface },
+
+    liveBadge: {
+        flexDirection: "row", alignItems: "center", gap: 5,
         backgroundColor: theme.colors.surfaceContainerLowest,
-        borderRadius: 16,
-        padding: 20,
-        borderWidth: 1,
+        borderWidth: 1, borderColor: theme.colors.outlineVariant,
+        paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99,
+    },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#10b981" },
+    liveText: { fontSize: 12, fontWeight: "600", color: theme.colors.onSurface },
+
+    metricsRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
+
+    quickRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 28 },
+    quickItem: { alignItems: "center", gap: 8 },
+    quickIcon: {
+        width: 52, height: 52,
+        backgroundColor: theme.colors.surfaceContainerLowest,
+        borderRadius: 14,
+        borderWidth: 1, borderColor: theme.colors.outlineVariant,
+        justifyContent: "center", alignItems: "center",
+    },
+    quickLabel: { fontSize: 11, fontWeight: "600", color: theme.colors.onSurfaceVariant },
+
+    sectionTitle: { fontSize: 16, fontWeight: "700", color: theme.colors.onSurface, marginBottom: 12 },
+
+    card: {
+        backgroundColor: theme.colors.surfaceContainerLowest,
+        borderRadius: 16, borderWidth: 1,
         borderColor: theme.colors.outlineVariant,
+        marginBottom: 12,
     },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    sectionTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.onSurface },
-    viewAll: { color: theme.colors.primary, fontWeight: '700', fontSize: 14 },
-    tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.colors.surfaceContainer, paddingBottom: 12 },
-    tableHeader: { fontSize: 11, fontWeight: '800', color: theme.colors.outline, letterSpacing: 1 },
-    tableDataRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.colors.surfaceContainerLow },
-    cellText: { fontSize: 15, color: theme.colors.onSurface },
-    dateText: { fontSize: 12, color: theme.colors.outline, marginTop: 2 },
-    statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, minWidth: 80, alignItems: 'center' },
-    statusText: { fontSize: 10, fontWeight: '900' },
-    emptyText: { textAlign: 'center', color: theme.colors.outline, marginVertical: 20, fontSize: 14 },
-    visualCard: {
-        height: 120,
-        backgroundColor: theme.colors.inverseSurface,
-        borderRadius: 16,
-        marginTop: 24,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 24,
+    viewAllRow: {
+        flexDirection: "row", alignItems: "center", justifyContent: "center",
+        gap: 6, paddingVertical: 14,
+        borderTopWidth: 1, borderTopColor: theme.colors.outlineVariant,
     },
-    visualTitle: { color: theme.colors.inverseOnSurface, fontSize: 20, fontWeight: '700' },
-    visualSub: { color: theme.colors.outlineVariant, fontSize: 14, marginTop: 4 },
-    syncBadge: { backgroundColor: '#4CAF50', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-    syncText: { color: 'white', fontSize: 10, fontWeight: '900', textTransform: 'uppercase' }
+    viewAllText: { fontSize: 13, fontWeight: "600", color: theme.colors.primary },
+    emptyText: { textAlign: "center", color: theme.colors.outline, paddingVertical: 24, fontSize: 14 },
+
+    statusCard: {
+        flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+        backgroundColor: theme.colors.surfaceContainerLowest,
+        borderRadius: 16, borderWidth: 1, borderColor: theme.colors.outlineVariant,
+        padding: 16, marginBottom: 12,
+    },
+    statusLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+    statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#10b981" },
+    statusTitle: { fontSize: 14, fontWeight: "700", color: theme.colors.onSurface },
+    statusSub: { fontSize: 12, color: theme.colors.onSurfaceVariant, marginTop: 1 },
+    statusTime: { fontSize: 12, color: theme.colors.outline },
 });

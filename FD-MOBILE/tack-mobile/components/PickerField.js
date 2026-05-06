@@ -1,31 +1,34 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 export const PickerField = ({ label, value, placeholder, onPress, helperText, containerStyle }) => {
+    const { theme } = useTheme();
+    const s = makeStyles(theme);
+
     return (
-        <View style={[styles.wrapper, containerStyle]}>
-            <Text style={styles.label}>{label}</Text>
+        <View style={[s.wrapper, containerStyle]}>
+            <Text style={s.label}>{label}</Text>
             <TouchableOpacity
-                style={styles.picker}
+                style={s.picker}
                 onPress={onPress}
                 activeOpacity={0.7}
             >
                 <Text
-                    style={[styles.value, !value && styles.placeholder]}
+                    style={[s.value, !value && s.placeholder]}
                     numberOfLines={1}
                 >
                     {value || placeholder}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color={theme.colors.primary} />
             </TouchableOpacity>
-            {helperText && <Text style={styles.helper}>{helperText}</Text>}
+            {helperText && <Text style={s.helper}>{helperText}</Text>}
         </View>
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     wrapper: {
         marginBottom: 16,
     },
@@ -35,15 +38,14 @@ const styles = StyleSheet.create({
         color: theme.colors.onSurfaceVariant,
         marginBottom: 8,
         letterSpacing: 1,
-      //  textTransform: 'uppercase',
     },
     picker: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        backgroundColor: theme.colors.surface,
+        backgroundColor: theme.colors.surfaceContainerLow,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: theme.colors.outlineVariant,
         borderRadius: 12,
         paddingHorizontal: 16,
         height: 52,

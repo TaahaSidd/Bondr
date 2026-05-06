@@ -1,66 +1,96 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
-export const FinishedGoodCard = ({ name, sku, qty, unit, status }) => {
-    const isCritical = status === "Out of stocK" || status === "Low Stock";
-    const statusColor = isCritical ? theme.colors.error : theme.colors.primary;
+export const FinishedGoodCard = ({ name, sku, qty, unit, status, onPress }) => {
+    const { theme } = useTheme();
+    const s = makeStyles(theme);
+
+    const isOut = status === "Out of Stock";
+    const isLow = status === "Low Stock";
+
+    // Dynamic color logic based on the current theme state
+    const badgeBg = isOut ? theme.colors.errorContainer : isLow ? theme.colors.warningContainer : theme.colors.tertiaryFixed;
+    const badgeText = isOut ? theme.colors.onErrorContainer : isLow ? theme.colors.onWarningContainer : theme.colors.onTertiaryFixedVariant;
+    const qtyColor = isOut ? theme.colors.error : isLow ? "#f59e0b" : theme.colors.onSurface;
 
     return (
-        <TouchableOpacity style={styles.card} activeOpacity={0.7}>
-            <View style={styles.topRow}>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.titleText}>{name}</Text>
-                    <Text style={styles.skuText}>{sku}</Text>
+        <TouchableOpacity style={s.card} activeOpacity={0.7} onPress={onPress}>
+            <View style={s.row}>
+                <View style={{ flex: 1, marginRight: 12 }}>
+                    <Text style={s.name} numberOfLines={1}>{name}</Text>
+                    <Text style={s.sku}>{sku}</Text>
                 </View>
-                <View style={styles.qtyContainer}>
-                    <Text style={[styles.qtyValue, { color: statusColor }]}>{qty}</Text>
-                    <Text style={styles.unitLabel}>{unit}</Text>
+                <View style={{ alignItems: "flex-end" }}>
+                    <Text style={[s.qty, { color: qtyColor }]}>{qty}</Text>
+                    <Text style={s.unit}>{unit}</Text>
                 </View>
             </View>
 
-            <View style={styles.footer}>
-                <View style={styles.statusIndicator}>
-                    {/* <View style={[styles.dot, { backgroundColor: statusColor }]} /> */}
-                    <Text style={[styles.statusText, { color: statusColor }]}>{status}</Text>
+            <View style={s.footer}>
+                <View style={[s.badge, { backgroundColor: badgeBg }]}>
+                    <Text style={[s.badgeText, { color: badgeText }]}>{status}</Text>
                 </View>
-                <View style={styles.detailsBtn}>
-                    <Text style={styles.detailsText}>Details</Text>
-                    <Ionicons name="chevron-forward" size={14} color={theme.colors.primary} />
-                </View>
+                <Text style={s.detailsLink}>Details →</Text>
             </View>
         </TouchableOpacity>
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     card: {
-        backgroundColor: 'white',
+        backgroundColor: theme.colors.surfaceContainerLowest,
         borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
+        padding: 14,
+        marginBottom: 10,
         borderWidth: 1,
-        borderColor: theme.colors.outlineVariant
+        borderColor: theme.colors.outlineVariant,
     },
-    topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    titleText: { fontSize: 18, fontWeight: '700', color: theme.colors.onSurface },
-    skuText: { fontSize: 11, color: theme.colors.outline, fontWeight: '600', marginTop: 2 },
-    qtyContainer: { alignItems: 'flex-end' },
-    qtyValue: { fontSize: 22, fontWeight: '800' },
-    unitLabel: { fontSize: 10, fontWeight: '800', color: theme.colors.outline },
+    row: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        marginBottom: 10,
+    },
+    name: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: theme.colors.onSurface
+    },
+    sku: {
+        fontSize: 11,
+        color: theme.colors.outline,
+        marginTop: 2
+    },
+    qty: {
+        fontSize: 18,
+        fontWeight: "700"
+    },
+    unit: {
+        fontSize: 10,
+        fontWeight: "600",
+        color: theme.colors.outline,
+        textAlign: "right"
+    },
     footer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 12,
-        paddingTop: 12,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingTop: 10,
         borderTopWidth: 1,
-        borderTopColor: theme.colors.surfaceContainerLow
+        borderTopColor: theme.colors.outlineVariant,
     },
-    statusIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    dot: { width: 6, height: 6, borderRadius: 3 },
-    statusText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-    detailsBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-    detailsText: { fontSize: 12, fontWeight: '700', color: theme.colors.primary }
+    badge: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6
+    },
+    badgeText: {
+        fontSize: 10,
+        fontWeight: "700"
+    },
+    detailsLink: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: theme.colors.primary
+    },
 });

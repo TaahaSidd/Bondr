@@ -1,100 +1,56 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
-export const MetricCard = ({ title, value, unit, subtext, iconName, trendUp }) => {
-    const trendColor = trendUp ? "#10b981" : "#ef4444";
+export const MetricCard = ({ title, value, unit, subtext }) => {
+    const { theme } = useTheme();
+    const s = makeStyles(theme);
 
     return (
-        <View style={styles.card}>
-            <View style={styles.header}>
-                <Ionicons name={iconName} size={16} color={theme.colors.primary} />
-                <Text style={styles.cardLabel} numberOfLines={1}>{title}</Text>
+        <View style={s.card}>
+            <Text style={s.label} numberOfLines={1}>{title}</Text>
+            <View style={s.valueRow}>
+                <Text style={s.value}>{value}</Text>
+                <Text style={s.unit}>{unit}</Text>
             </View>
-
-            <View style={styles.content}>
-                <View style={styles.valueRow}>
-                    <Text style={styles.cardValue}>{value}</Text>
-                    <Text style={styles.unitText}>{unit}</Text>
-                </View>
-
-                {subtext && (
-                    <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
-                        <Ionicons
-                            name={trendUp ? "trending-up" : "trending-down"}
-                            size={12}
-                            color={trendColor}
-                        />
-                        <Text style={[styles.subtext, { color: trendColor }]}>
-                            {subtext}
-                        </Text>
-                    </View>
-                )}
-            </View>
+            {subtext && <Text style={s.subtext} numberOfLines={1}>{subtext}</Text>}
         </View>
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     card: {
-        flex: 1, // Allows cards to sit side-by-side in a Row
-        backgroundColor: theme.colors.surface,
+        flex: 1,
+        backgroundColor: theme.colors.surfaceContainerLowest,
         padding: 14,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: theme.colors.border,
-        // Subtle depth
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 3,
-        elevation: 1,
+        borderColor: theme.colors.outlineVariant,
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-        gap: 6
-    },
-    cardLabel: {
+    label: {
         fontSize: 11,
-        fontWeight: '700',
+        fontWeight: "600",
         color: theme.colors.onSurfaceVariant,
-        //textTransform: 'uppercase',
-        letterSpacing: 0.4
-    },
-    content: {
-        flexDirection: 'column',
-        justifyContent: 'space-between',
+        marginBottom: 8,
     },
     valueRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
+        flexDirection: "row",
+        alignItems: "baseline",
+        gap: 3,
     },
-    cardValue: {
-        fontSize: 22,
-        fontWeight: '800',
+    value: {
+        fontSize: 20,
+        fontWeight: "700",
         color: theme.colors.onSurface,
     },
-    unitText: {
-        fontSize: 12,
+    unit: {
+        fontSize: 11,
+        fontWeight: "500",
         color: theme.colors.onSurfaceVariant,
-        marginLeft: 3,
-        fontWeight: '600'
-    },
-    trendBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 8,
-        alignSelf: 'flex-start',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4
     },
     subtext: {
-        fontSize: 10,
-        fontWeight: '700',
-        marginLeft: 3
+        fontSize: 11,
+        color: theme.colors.outline,
+        marginTop: 6,
     },
 });

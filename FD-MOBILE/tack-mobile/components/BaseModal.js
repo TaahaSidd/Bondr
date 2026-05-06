@@ -1,11 +1,10 @@
 import React from "react";
 import {
     View, Text, StyleSheet, Modal,
-    TouchableOpacity, TouchableWithoutFeedback,
+    TouchableWithoutFeedback,
     KeyboardAvoidingView, Platform
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 export const BaseModal = ({
     visible,
@@ -15,6 +14,9 @@ export const BaseModal = ({
     children,
     actions
 }) => {
+    const { theme } = useTheme();
+    const s = makeStyles(theme);
+
     return (
         <Modal
             animationType="fade"
@@ -23,29 +25,29 @@ export const BaseModal = ({
             onRequestClose={onClose}
         >
             <TouchableWithoutFeedback onPress={onClose}>
-                <View style={styles.overlay}>
+                <View style={s.overlay}>
                     <TouchableWithoutFeedback>
                         <KeyboardAvoidingView
                             behavior={Platform.OS === "ios" ? "padding" : "height"}
-                            style={styles.container}
+                            style={s.container}
                         >
-                            <View style={styles.modalCard}>
-                                {/* Header Section - No Close Icon */}
-                                <View style={styles.header}>
+                            <View style={s.modalCard}>
+                                {/* Header Section */}
+                                <View style={s.header}>
                                     <View>
-                                        <Text style={styles.title}>{title}</Text>
-                                        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+                                        <Text style={s.title}>{title}</Text>
+                                        {subtitle && <Text style={s.subtitle}>{subtitle}</Text>}
                                     </View>
                                 </View>
 
                                 {/* Dynamic Content Area */}
-                                <View style={styles.content}>
+                                <View style={s.content}>
                                     {children}
                                 </View>
 
                                 {/* Action Buttons Area */}
                                 {actions && (
-                                    <View style={styles.footer}>
+                                    <View style={s.footer}>
                                         {actions}
                                     </View>
                                 )}
@@ -58,10 +60,10 @@ export const BaseModal = ({
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Slightly darker for focus
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 24
@@ -71,13 +73,13 @@ const styles = StyleSheet.create({
         maxWidth: 400,
     },
     modalCard: {
-        backgroundColor: theme.colors.surface,
+        backgroundColor: theme.colors.background,
         borderRadius: 24,
         padding: 24,
         elevation: 24,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.3,
+        shadowOpacity: theme.dark ? 0.5 : 0.3,
         shadowRadius: 16,
     },
     header: {
@@ -96,11 +98,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: theme.colors.onSurfaceVariant,
         marginTop: 2
-    },
-    closeBtn: {
-        backgroundColor: theme.colors.surfaceContainerHigh,
-        padding: 4,
-        borderRadius: 12
     },
     content: {
         marginBottom: 24

@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "tack-mobile",
-    "slug": "tack-mobile",
+    "name": "Tack",
+    "slug": "tack",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/tack-BW.png",
+    "icon": "./assets/images/tackLogo.png",
     "scheme": "tackmobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,18 +19,19 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.SpicaLabs.Tack"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/tack-BW.png"
+      "favicon": "./assets/images/tackLogo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/tack-BW.png",
+          "image": "./assets/images/tackLogo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -38,11 +39,18 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bcdd0673-30cf-4d8e-8b23-50c65e01a60c"
+      }
     }
   }
 }

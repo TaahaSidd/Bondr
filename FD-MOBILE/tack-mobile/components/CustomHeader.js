@@ -1,49 +1,50 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../constants/theme";
 import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "../context/ThemeContext";
 
-export const CustomHeader = ({
-    title,
-    subtitle,
-    showBack = false,
-    isDashboard = false
-}) => {
+export const CustomHeader = ({ title, subtitle, showBack = false, isDashboard = false }) => {
     const navigation = useNavigation();
+    const { theme, isDark } = useTheme();
+    const s = makeStyles(theme);
 
     return (
-        <View style={styles.headerContainer}>
-            <StatusBar barStyle="dark-content" />
+        <View style={s.headerContainer}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-            <View style={styles.mainRow}>
-                <View style={styles.leftSection}>
+            <View style={s.mainRow}>
+                <View style={s.leftSection}>
                     {showBack ? (
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                            <Ionicons name="chevron-back" size={24} color={theme.colors.onSurface} />
-                        </TouchableOpacity>
+                        <View style={s.backRow}>
+                            <TouchableOpacity
+                                onPress={() => navigation.goBack()}
+                                style={s.backButton}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                                <Ionicons name="chevron-back" size={24} color={theme.colors.onSurface} />
+                            </TouchableOpacity>
+                            <View>
+                                <Text style={s.screenTitle}>{title || "Back"}</Text>
+                                {subtitle && <Text style={s.subtitleText}>{subtitle}</Text>}
+                            </View>
+                        </View>
                     ) : (
                         <View>
-                            <Text style={isDashboard ? styles.brandLabel : styles.screenTitle}>
-                                {(title || "WELCOME")}
+                            <Text style={isDashboard ? s.brandLabel : s.screenTitle}>
+                                {isDashboard ? "Welcome" : (title || "")}
                             </Text>
                             {!isDashboard && subtitle && (
-                                <Text style={styles.subtitleText}>{subtitle}</Text>
+                                <Text style={s.subtitleText}>{subtitle}</Text>
                             )}
                         </View>
                     )}
                 </View>
 
-                {/* Right icons only show on Dash */}
                 {isDashboard && (
-                    <View style={styles.rightSection}>
-                        <TouchableOpacity style={styles.iconButton}>
-                            <Ionicons name="notifications-outline" size={20} color={theme.colors.onSurface} />
-                            <View style={styles.dot} />
-                        </TouchableOpacity>
-
+                    <View style={s.rightSection}>
                         <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
-                            <View style={styles.avatar}>
+                            <View style={s.avatar}>
                                 <Ionicons name="person" size={16} color={theme.colors.primary} />
                             </View>
                         </TouchableOpacity>
@@ -54,69 +55,40 @@ export const CustomHeader = ({
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     headerContainer: {
         backgroundColor: theme.colors.background,
-        paddingHorizontal: 24, // Consistent Gutter
+        paddingHorizontal: 24,
         paddingTop: Platform.OS === "ios" ? 48 : (StatusBar.currentHeight || 0) + 12,
-        paddingBottom: 8, // Tightened bottom padding
+        paddingBottom: 8,
     },
     mainRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
+        minHeight: 40,
     },
-    leftSection: {
-        flex: 1
-    },
+    leftSection: { flex: 1 },
+    backRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    backButton: { padding: 4, marginLeft: -8 },
+
     brandLabel: {
-        fontSize: 12,
-        fontWeight: "900",
-        color: theme.colors.primary,
-        letterSpacing: 1.5,
+        fontSize: 12, fontWeight: "900",
+        color: theme.colors.primary, letterSpacing: 1.5,
     },
     screenTitle: {
-        fontSize: 18,
-        fontWeight: "800",
-        color: theme.colors.onSurface,
-        letterSpacing: -0.2,
+        fontSize: 18, fontWeight: "800",
+        color: theme.colors.onSurface, letterSpacing: -0.2,
     },
     subtitleText: {
-        fontSize: 11,
-        color: theme.colors.outline,
-        fontWeight: "600",
-        marginTop: 1,
+        fontSize: 11, fontWeight: "600",
+        color: theme.colors.outline, marginTop: 1,
     },
-    rightSection: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12
-    },
-    iconButton: {
-        position: "relative",
-        padding: 4
-    },
-    dot: {
-        position: "absolute",
-        right: 4, top: 4,
-        width: 6, height: 6,
-        backgroundColor: "#ef4444",
-        borderRadius: 3,
-        borderWidth: 1.5,
-        borderColor: theme.colors.background,
-    },
+    rightSection: { flexDirection: "row", alignItems: "center", gap: 12 },
     avatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 10,
+        width: 32, height: 32, borderRadius: 10,
         backgroundColor: theme.colors.surfaceContainerHigh,
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: theme.colors.outlineVariant,
+        justifyContent: "center", alignItems: "center",
+        borderWidth: 1, borderColor: theme.colors.outlineVariant,
     },
-    backButton: {
-        padding: 4,
-        marginLeft: -6,
-    }
 });

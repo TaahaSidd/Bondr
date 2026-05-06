@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
-import { theme } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 export const Input = ({
     label,
@@ -12,13 +12,16 @@ export const Input = ({
     style,
     ...props
 }) => {
+    const { theme } = useTheme();
+    const s = makeStyles(theme);
+
     return (
-        <View style={[styles.container, style]}>
-            {label && <Text style={styles.inputLabel}>{label}</Text>}
+        <View style={[s.container, style]}>
+            {label && <Text style={s.inputLabel}>{label}</Text>}
             <TextInput
                 style={[
-                    styles.input,
-                    multiline && styles.textArea
+                    s.input,
+                    multiline && s.textArea
                 ]}
                 value={value}
                 onChangeText={onChangeText}
@@ -33,7 +36,7 @@ export const Input = ({
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     container: {
         width: "100%",
         marginBottom: 16,
@@ -53,7 +56,7 @@ const styles = StyleSheet.create({
         padding: 12,
         fontSize: 16,
         color: theme.colors.onSurface,
-        height: 52, // Standardizing height for touch targets
+        height: 52,
     },
     textArea: {
         height: 100,

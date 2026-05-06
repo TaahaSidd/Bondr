@@ -10,7 +10,7 @@ import {
     Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 export const ItemSelector = ({
     visible,
@@ -20,6 +20,9 @@ export const ItemSelector = ({
     title,
     renderSub
 }) => {
+    const { theme } = useTheme();
+    const s = makeStyles(theme);
+
     return (
         <Modal
             visible={visible}
@@ -27,11 +30,10 @@ export const ItemSelector = ({
             animationType="slide"
             onRequestClose={onClose}
         >
-            <Pressable style={styles.overlay} onPress={onClose}>
-                {/* Pressable View prevents the sheet itself from closing when tapped */}
-                <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-                    <View style={styles.header}>
-                        <Text style={styles.title}>{title}</Text>
+            <Pressable style={s.overlay} onPress={onClose}>
+                <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
+                    <View style={s.header}>
+                        <Text style={s.title}>{title}</Text>
                         <TouchableOpacity onPress={onClose} hitSlop={15}>
                             <Ionicons name="close-circle" size={24} color={theme.colors.outline} />
                         </TouchableOpacity>
@@ -39,31 +41,30 @@ export const ItemSelector = ({
 
                     <FlatList
                         data={items}
-                        // Fallback to name or index if ID is missing to prevent demo crashes
                         keyExtractor={(item, index) => String(item.id || item.name || index)}
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.listContent}
+                        contentContainerStyle={s.listContent}
                         renderItem={({ item }) => (
                             <TouchableOpacity
-                                style={styles.itemRow}
+                                style={s.itemRow}
                                 activeOpacity={0.6}
                                 onPress={() => {
                                     onSelect(item);
                                     onClose();
                                 }}
                             >
-                                <View style={styles.itemInfo}>
-                                    <Text style={styles.itemName}>{item.name}</Text>
+                                <View style={s.itemInfo}>
+                                    <Text style={s.itemName}>{item.name}</Text>
                                     {renderSub && (
-                                        <Text style={styles.itemSub}>{renderSub(item)}</Text>
+                                        <Text style={s.itemSub}>{renderSub(item)}</Text>
                                     )}
                                 </View>
                                 <Ionicons name="chevron-forward" size={16} color={theme.colors.outlineVariant} />
                             </TouchableOpacity>
                         )}
-                        ItemSeparatorComponent={() => <View style={styles.separator} />}
+                        ItemSeparatorComponent={() => <View style={s.separator} />}
                         ListEmptyComponent={() => (
-                            <Text style={styles.emptyText}>No items available</Text>
+                            <Text style={s.emptyText}>No items available</Text>
                         )}
                     />
                 </Pressable>
@@ -72,22 +73,22 @@ export const ItemSelector = ({
     );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.5)", // Darker overlay for better focus
+        backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "flex-end",
     },
     sheet: {
         backgroundColor: theme.colors.background,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        maxHeight: "70%", // Slightly taller for easier browsing
+        maxHeight: "70%",
         paddingBottom: Platform.OS === 'ios' ? 40 : 24,
         elevation: 10,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: theme.dark ? 0.3 : 0.1,
         shadowRadius: 10,
     },
     header: {
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingVertical: 20,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: theme.colors.outlineVariant,
     },
     title: {
         fontSize: 12,
@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
     },
     separator: {
         height: 1,
-        backgroundColor: theme.colors.border,
+        backgroundColor: theme.colors.outlineVariant,
     },
     emptyText: {
         textAlign: 'center',

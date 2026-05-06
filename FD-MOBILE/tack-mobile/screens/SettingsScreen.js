@@ -1,22 +1,44 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../constants/theme";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, ScrollView, ToastAndroid, Platform, Alert } from "react-native";
+import Constants from 'expo-constants'; // Import Expo Constants
+
+import { useTheme } from "../context/ThemeContext";
 import { SettingsGroup } from "../components/SettingsGroup";
+import { staffApi } from "../api/staffApi";
 
 export default function SettingsScreen({ navigation }) {
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    const { theme, isDark, toggleTheme } = useTheme();
+    const s = makeStyles(theme);
+
+    const [staffCount, setStaffCount] = useState(null);
+
+    // Dynamic version from app.json
+    const appVersion = Constants.expoConfig?.version || "1.0.0";
+
+    useEffect(() => {
+        staffApi.getAllStaff()
+            .then(r => setStaffCount(r.data.length))
+            .catch(() => setStaffCount(null));
+    }, []);
+
+    const showVersionToast = () => {
+        const msg = `Tack Version ${appVersion}`;
+        if (Platform.OS === 'android') {
+            ToastAndroid.show(msg, ToastAndroid.SHORT);
+        } else {
+            // ToastAndroid doesn't exist on iOS, using Alert as a fallback
+            Alert.alert("App Info", msg);
+        }
+    };
 
     const businessItems = [
-        { icon: "business-outline", label: "Company Profile", value: "Tack Manufacturing" },
+        { icon: "business-outline", label: "Company Profile", value: "FoxGlue" },
         {
             icon: "people-outline",
             label: "Staff Management",
-            value: "4 Members",
-            onPress: () => navigation.navigate("Staff")
+            value: staffCount !== null ? `${staffCount} Members` : "—",
+            onPress: () => navigation.navigate("Staff"),
         },
-        { icon: "receipt-outline", label: "Tax & Billing", value: "GST Enabled" },
-        { icon: "location-outline", label: "Warehouses", value: "2 Active" },
     ];
 
     const preferenceItems = [
@@ -24,43 +46,30 @@ export default function SettingsScreen({ navigation }) {
             icon: "moon-outline",
             label: "Dark Mode",
             type: "toggle",
-            value: isDarkMode,
-            onValueChange: setIsDarkMode,
+            value: isDark,
+            onValueChange: toggleTheme,
         },
-        { icon: "notifications-outline", label: "Stock Alerts", value: "Enabled" },
     ];
 
     const supportItems = [
-        { icon: "cloud-download-outline", label: "Export Data", value: "CSV/PDF" },
+        { icon: "cloud-download-outline", label: "Export Data", value: "CSV / PDF" },
         { icon: "help-circle-outline", label: "Support" },
-        { icon: "information-circle-outline", label: "Version", value: "1.0.4-beta" },
+        {
+            icon: "information-circle-outline",
+            label: "Version",
+            value: appVersion,
+            onPress: showVersionToast // Triggers the toast/alert
+        },
     ];
 
     return (
-        <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                <View style={styles.header}>
-                    <Text style={styles.title}>Settings</Text>
-                </View>
+        <View style={s.container}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
+                <Text style={s.screenTitle}>Settings</Text>
 
-                {/* Profile Card */}
-                <View style={styles.profileCard}>
-                    <View style={styles.avatarLarge}>
-                        <Ionicons name="person" size={40} color={theme.colors.primary} />
-                    </View>
-                    <View>
-                        <Text style={styles.userName}>Industrial Owner</Text>
-                        <Text style={styles.userRole}>Administrator • Tack Pro</Text>
-                    </View>
-                </View>
-
-                <SettingsGroup title="Business Details" items={businessItems} />
-                <SettingsGroup title="App Preferences" items={preferenceItems} />
+                <SettingsGroup title="Business" items={businessItems} />
+                <SettingsGroup title="Preferences" items={preferenceItems} />
                 <SettingsGroup title="Data & Support" items={supportItems} />
-
-                <TouchableOpacity style={styles.logoutBtn}>
-                    <Text style={styles.logoutText}>Log Out</Text>
-                </TouchableOpacity>
 
                 <View style={{ height: 100 }} />
             </ScrollView>
@@ -68,38 +77,27 @@ export default function SettingsScreen({ navigation }) {
     );
 }
 
-const styles = StyleSheet.create({
+// ... styles remain the same
+
+const makeStyles = (theme) => StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background },
-    scrollContent: { paddingHorizontal: 24, paddingTop: 60 },
-    header: { marginBottom: 24 },
-    title: { fontSize: 32, fontWeight: '700', color: theme.colors.onSurface },
+    scrollContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
+
+    screenTitle: {
+        fontSize: 22, fontWeight: "700",
+        color: theme.colors.onSurface, marginBottom: 16, marginTop: 24,
+    },
     profileCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-        backgroundColor: 'white',
-        padding: 20,
-        borderRadius: 20,
-        marginBottom: 32,
-        borderWidth: 1,
-        borderColor: theme.colors.outlineVariant
+        flexDirection: "row", alignItems: "center", gap: 14,
+        backgroundColor: theme.colors.surfaceContainerLowest,
+        padding: 16, borderRadius: 16, marginBottom: 24,
+        borderWidth: 1, borderColor: theme.colors.outlineVariant,
     },
-    avatarLarge: {
-        width: 70,
-        height: 70,
-        borderRadius: 35,
+    avatar: {
+        width: 52, height: 52, borderRadius: 14,
         backgroundColor: theme.colors.primaryContainer,
-        justifyContent: 'center',
-        alignItems: 'center'
+        justifyContent: "center", alignItems: "center",
     },
-    userName: { fontSize: 20, fontWeight: '700', color: theme.colors.onSurface },
-    userRole: { fontSize: 14, color: theme.colors.onSurfaceVariant },
-    logoutBtn: {
-        marginTop: 8,
-        padding: 16,
-        alignItems: 'center',
-        borderRadius: 16,
-        backgroundColor: '#fee2e2' // Light red background
-    },
-    logoutText: { color: '#ef4444', fontWeight: '700', fontSize: 16 }
+    userName: { fontSize: 15, fontWeight: "700", color: theme.colors.onSurface },
+    userRole: { fontSize: 13, color: theme.colors.onSurfaceVariant, marginTop: 2 },
 });

@@ -1,32 +1,33 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
-const SettingItem = ({ icon, label, value, type = "link", onValueChange, onPress }) => (
+const SettingItem = ({ icon, label, value, type = "link", onValueChange, onPress, isLast, theme, s }) => (
     <TouchableOpacity
-        style={styles.item}
+        style={[s.item, isLast && { borderBottomWidth: 0 }]}
         disabled={type === "toggle"}
         onPress={onPress}
-        activeOpacity={0.7}
+        activeOpacity={0.6}
     >
-        <View style={styles.itemLeft}>
-            <View style={styles.iconContainer}>
-                <Ionicons name={icon} size={22} color={theme.colors.primary} />
+        <View style={s.itemLeft}>
+            <View style={s.iconBox}>
+                <Ionicons name={icon} size={18} color={theme.colors.primary} />
             </View>
-            <Text style={styles.itemLabel}>{label}</Text>
+            <Text style={s.itemLabel}>{label}</Text>
         </View>
-        <View style={styles.itemRight}>
+        <View style={s.itemRight}>
             {type === "toggle" ? (
                 <Switch
                     value={value}
                     onValueChange={onValueChange}
                     trackColor={{ false: theme.colors.outlineVariant, true: theme.colors.primary }}
+                    thumbColor="white"
                 />
             ) : (
                 <>
-                    {value && <Text style={styles.itemValue}>{value}</Text>}
-                    <Ionicons name="chevron-forward" size={18} color={theme.colors.onSurfaceVariant} />
+                    {value && <Text style={s.itemValue}>{value}</Text>}
+                    <Ionicons name="chevron-forward" size={16} color={theme.colors.outline} />
                 </>
             )}
         </View>
@@ -34,15 +35,19 @@ const SettingItem = ({ icon, label, value, type = "link", onValueChange, onPress
 );
 
 export const SettingsGroup = ({ title, items }) => {
+    const { theme } = useTheme();
+    const s = makeStyles(theme);
+
     return (
-        <View style={styles.container}>
-            {title && <Text style={styles.sectionHeader}>{title}</Text>}
-            <View style={styles.group}>
+        <View style={s.container}>
+            {title && <Text style={s.groupTitle}>{title}</Text>}
+            <View style={s.card}>
                 {items.map((item, index) => (
                     <SettingItem
                         key={index}
                         {...item}
-                        // Remove border from the last item in the group
+                        theme={theme}
+                        s={s}
                         isLast={index === items.length - 1}
                     />
                 ))}
@@ -51,42 +56,59 @@ export const SettingsGroup = ({ title, items }) => {
     );
 };
 
-const styles = StyleSheet.create({
-    container: { marginBottom: 24 },
-    sectionHeader: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: theme.colors.primary,
-        marginBottom: 12,
-        marginLeft: 4,
-        //textTransform: 'uppercase',
-        letterSpacing: 1
+const makeStyles = (theme) => StyleSheet.create({
+    container: { marginBottom: 20 },
+
+    groupTitle: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: theme.colors.onSurfaceVariant,
+        marginBottom: 8,
+        marginLeft: 2,
     },
-    group: {
-        backgroundColor: 'white',
+
+    card: {
+        backgroundColor: theme.colors.surfaceContainerLowest,
         borderRadius: 16,
-        overflow: 'hidden',
         borderWidth: 1,
-        borderColor: theme.colors.outlineVariant
+        borderColor: theme.colors.outlineVariant,
+        overflow: "hidden",
     },
+
     item: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.background // Acts as a separator
+        borderBottomColor: theme.colors.outlineVariant,
     },
-    itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    iconContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: theme.colors.surfaceContainerLow,
-        justifyContent: 'center',
-        alignItems: 'center'
+    itemLeft: {
+        flexDirection: "row",
+        alignItems: "center",
     },
-    itemLabel: { fontSize: 16, fontWeight: '500', color: theme.colors.onSurface },
-    itemRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    itemValue: { fontSize: 14, color: theme.colors.onSurfaceVariant },
+    iconBox: {
+        width: 34,
+        height: 34,
+        borderRadius: 9,
+        backgroundColor: theme.colors.primaryContainer,
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 12, // Replaces gap for compatibility
+    },
+    itemLabel: {
+        fontSize: 15,
+        fontWeight: "500",
+        color: theme.colors.onSurface
+    },
+    itemRight: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    itemValue: {
+        fontSize: 13,
+        color: theme.colors.onSurfaceVariant,
+        marginRight: 6, // Replaces gap for compatibility
+    },
 });
