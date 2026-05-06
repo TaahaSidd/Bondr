@@ -18,7 +18,7 @@ public class ProductOrderHistoryDto {
 
     private LocalDate orderDate;
 
-    private BigDecimal quantity;
+    private Integer quantity;
     private BigDecimal price;
 
 }
