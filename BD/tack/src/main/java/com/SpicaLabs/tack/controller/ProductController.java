@@ -1,7 +1,10 @@
 package com.SpicaLabs.tack.controller;
 
 import com.SpicaLabs.tack.dto.request.ProductReqDto;
+import com.SpicaLabs.tack.dto.response.LastBatchInfoDto;
+import com.SpicaLabs.tack.dto.response.ProductHistoryResponseDto;
 import com.SpicaLabs.tack.dto.response.ProductRespDto;
+import com.SpicaLabs.tack.dto.response.TotalProductionDto;
 import com.SpicaLabs.tack.services.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,5 +33,24 @@ public class ProductController {
     @GetMapping("/product/{id}")
     public ResponseEntity<ProductRespDto> getProductById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductById(id));
+    }
+
+    @GetMapping("/{id}/last-batch")
+    public ResponseEntity<LastBatchInfoDto> getLastBatchInfo(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getLastBatchInfo(id));
+    }
+
+    @GetMapping("/{id}/total-production")
+    public ResponseEntity<TotalProductionDto> getTotalProduction(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getTotalProduction(id));
+    }
+
+    @GetMapping("/{id}/order-history")
+    public ResponseEntity<ProductHistoryResponseDto> getProductHistory(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "14") Integer days,
+            @RequestParam(defaultValue = "10") Integer limit
+    ) {
+        return ResponseEntity.ok(productService.getProductHistory(id, days, limit));
     }
 }
